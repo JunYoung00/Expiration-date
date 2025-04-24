@@ -74,4 +74,3 @@ Future<void> showExpirationNotification(String itemName, int daysLeft) async {
   );
 }
 
-
