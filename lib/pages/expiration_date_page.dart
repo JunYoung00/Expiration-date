@@ -1,108 +1,130 @@
 import 'package:flutter/material.dart';
-import 'calorie_calculator_page.dart';
-import 'settings_page.dart';
-import 'camera_page.dart';
-import '../notifications/notification_service.dart'; // ✅ 알림 서비스 import
 
 class ExpirationDatePage extends StatefulWidget {
   @override
   _ExpirationDatePageState createState() => _ExpirationDatePageState();
 }
 
-class _ExpirationDatePageState extends State<ExpirationDatePage> {
-  int _selectedIndex = 0;
+class _ExpirationDatePageState extends State<ExpirationDatePage> with TickerProviderStateMixin {
+  bool _isExpanded = false;
+  late AnimationController _cameraController;
+  late AnimationController _searchController;
+  late Animation<Offset> _cameraOffsetAnimation;
+  late Animation<Offset> _searchOffsetAnimation;
+  late Animation<double> _cameraOpacity;
+  late Animation<double> _searchOpacity;
 
-  void _onItemTapped(int index) {
+  @override
+  void initState() {
+    super.initState();
+
+    _cameraController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 300),
+    );
+
+    _searchController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 300),
+    );
+
+    _cameraOffsetAnimation = Tween<Offset>(
+      begin: Offset(0, 0),
+      end: Offset(0, -1.2),
+    ).animate(CurvedAnimation(parent: _cameraController, curve: Curves.easeOut));
+
+    _searchOffsetAnimation = Tween<Offset>(
+      begin: Offset(0, 0),
+      end: Offset(0, -2.4),
+    ).animate(CurvedAnimation(parent: _searchController, curve: Curves.easeOut));
+
+    _cameraOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(_cameraController);
+    _searchOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(_searchController);
+  }
+
+  @override
+  void dispose() {
+    _cameraController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _toggleExpand() async {
+    if (_isExpanded) {
+      _searchController.reverse();
+      _cameraController.reverse();
+    } else {
+      _cameraController.forward();
+      _searchController.forward();
+    }
     setState(() {
-      _selectedIndex = index;
+      _isExpanded = !_isExpanded;
     });
-    if (index == 1) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => CalorieCalculatorPage()));
-    } else if (index == 2) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+  }
+
+
+  void _collapseIfExpanded() async {
+    if (_isExpanded) {
+      await _searchController.reverse();
+      await _cameraController.reverse();
+      setState(() {
+        _isExpanded = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('유통기한 확인', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
-        automaticallyImplyLeading: false,
-      ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: '품목 검색',
-                    prefixIcon: Icon(Icons.search, color: Colors.blueAccent),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-              ),
-              // ✅ 테스트용 알림 버튼 추가
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: ElevatedButton(
+    return GestureDetector(
+      onTap: _collapseIfExpanded,
+      child: Scaffold(
+        body: Center(
+          child: Text(
+            '유통기한 확인 페이지',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+        floatingActionButton: Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            FadeTransition(
+              opacity: _searchOpacity,
+              child: SlideTransition(
+                position: _searchOffsetAnimation,
+                child: FloatingActionButton(
+                  heroTag: "searchButton",
                   onPressed: () {
-                    NotificationService.testDummyExpirationAlert(); // 알림 호출
+                    print('검색 버튼 클릭');
                   },
-                  child: Text('유통기한 테스트 알림 보내기'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
+                  backgroundColor: Colors.grey[700],
+                  child: Icon(Icons.search),
                 ),
               ),
-              Expanded(
-                child: Center(
-                  child: Text('유통기한 정보 표시 페이지', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-          Positioned(
-            bottom: 40,
-            right: 20,
-            child: FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CameraPage()),
-                );
-              },
-              child: Icon(Icons.camera_alt),
-              backgroundColor: Colors.blueAccent,
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: true,
-        showUnselectedLabels: false,
-        onTap: _onItemTapped,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.calculate), label: '칼로리 계산'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '설정'),
-        ],
+            SizedBox(height: 20),
+            FadeTransition(
+              opacity: _cameraOpacity,
+              child: SlideTransition(
+                position: _cameraOffsetAnimation,
+                child: FloatingActionButton(
+                  heroTag: "cameraButton",
+                  onPressed: () {
+                    print('카메라 버튼 클릭');
+                  },
+                  backgroundColor: Colors.grey[700],
+                  child: Icon(Icons.camera_alt),
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            FloatingActionButton(
+              heroTag: "mainButton",
+              onPressed: _toggleExpand,
+              backgroundColor: Colors.grey[800],
+              child: Icon(_isExpanded ? Icons.close : Icons.add),
+            ),
+          ],
+        ),
       ),
     );
   }
