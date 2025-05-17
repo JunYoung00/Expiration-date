@@ -1,65 +1,127 @@
 import 'package:flutter/material.dart';
-import 'expiration_date_page.dart';
-import 'calorie_calculator_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../main.dart'; // main.dart에 있는 flutterLocalNotificationsPlugin을 가져다 씀
 
 class SettingsPage extends StatefulWidget {
+  final Function(ThemeMode) toggleTheme;
+
+  SettingsPage({required this.toggleTheme});
+
   @override
   _SettingsPageState createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  int _selectedIndex = 2;
+  bool _isNotificationEnabled = true;
+  late SharedPreferences _prefs;
 
-  void _onItemTapped(int index) {
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSetting();
+  }
+
+  Future<void> _loadNotificationSetting() async {
+    _prefs = await SharedPreferences.getInstance();
     setState(() {
-      _selectedIndex = index;
+      _isNotificationEnabled = _prefs.getBool('isNotificationEnabled') ?? true;
     });
-    if (index == 0) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => ExpirationDatePage()));
-    } else if (index == 1) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => CalorieCalculatorPage()));
+  }
+
+  void _showAppInfoDialog(BuildContext context) async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    String version = packageInfo.version;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('앱 정보', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('버전: $version', style: TextStyle(fontSize: 16)),
+        actions: [
+          TextButton(
+            child: Text('닫기'),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          )
+        ],
+      ),
+    );
+  }
+
+  void _showThemeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('테마 선택', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text('라이트 모드'),
+              onTap: () {
+                widget.toggleTheme(ThemeMode.light);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              title: Text('다크 모드'),
+              onTap: () {
+                widget.toggleTheme(ThemeMode.dark);
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _toggleNotification(bool value) async {
+    setState(() {
+      _isNotificationEnabled = value;
+    });
+    await _prefs.setBool('isNotificationEnabled', value);
+
+    if (!value) {
+      await _prefs.setBool('notificationShown', false); // ✅ 알림 플래그 초기화
+      // 알림 스위치 끄면 모든 예약 알림 취소
+      await flutterLocalNotificationsPlugin.cancelAll();
+      print("알림 모두 취소됨");
+    } else {
+      // 스위치 켜면 새 알림 등록할 수도 있음 (여긴 지금은 스킵해도 됨)
+      print("알림 허용됨");
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('설정', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
-        automaticallyImplyLeading: false,
-      ),
       body: ListView(
         children: [
           ListTile(
-            title: Text('알림 설정'),
-            leading: Icon(Icons.notifications),
-            onTap: () {},
+            leading: Icon(Icons.color_lens, color: Colors.grey),
+            title: Text('테마 설정', style: TextStyle(fontSize: 18)),
+            onTap: () => _showThemeDialog(context),
           ),
+          Divider(),
+          SwitchListTile(
+            secondary: Icon(Icons.notifications_active, color: Colors.grey),
+            title: Text('알림 설정', style: TextStyle(fontSize: 18)),
+            value: _isNotificationEnabled,
+            onChanged: (bool value) {
+              _toggleNotification(value); // ✅ 여기 연결!
+            },
+          ),
+
+          Divider(),
           ListTile(
-            title: Text('테마 설정'),
-            leading: Icon(Icons.color_lens),
-            onTap: () {},
+            leading: Icon(Icons.info_outline, color: Colors.grey),
+            title: Text('앱 정보', style: TextStyle(fontSize: 18)),
+            onTap: () => _showAppInfoDialog(context),  // ✅ 이거 확실하게 연결
           ),
-          ListTile(
-            title: Text('기타 설정'),
-            leading: Icon(Icons.settings),
-            onTap: () {},
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: true,
-        showUnselectedLabels: false,
-        onTap: _onItemTapped,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.calculate), label: '칼로리 계산'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '설정'),
         ],
       ),
     );

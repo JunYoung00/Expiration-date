@@ -1,76 +1,126 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'pages/home_page.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await initializeNotifications();
-  await requestNotificationPermission();
-
-  runApp(MyApp());
-
-  // 앱 실행 시 테스트용 알림 실행
-  // testDummyExpirationAlert();
+  WidgetsFlutterBinding.ensureInitialized(); // Flutter 엔진 초기화
+  SharedPreferences prefs = await SharedPreferences.getInstance(); // 저장된 값 불러오기
+  bool isDarkMode = prefs.getBool('isDarkMode') ?? false; // 저장된 테마값 읽기
+  runApp(MyApp(isDarkMode: isDarkMode)); // 읽은 테마값 넘기기
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
+  final bool isDarkMode; // 처음 받을 때 다크모드 여부
+
+  MyApp({required this.isDarkMode});
+
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.grey[200],
-      ),
-      home: HomePage(),
-    );
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late ThemeMode _themeMode;
+  late SharedPreferences _prefs;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeMode = widget.isDarkMode ? ThemeMode.dark : ThemeMode.light; // 최초 테마 적용
+    _loadPrefs(); // SharedPreferences 준비
   }
-}
 
-// ✅ 알림 초기화
-Future<void> initializeNotifications() async {
-  const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
+  Future<void> _loadPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+  }
 
-  const InitializationSettings initializationSettings =
-  InitializationSettings(android: initializationSettingsAndroid);
-
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-}
-
-// ✅ Android 13 이상에서 알림 권한 요청
-Future<void> requestNotificationPermission() async {
-  final deviceInfo = await DeviceInfoPlugin().androidInfo;
-  if (deviceInfo.version.sdkInt >= 33) {
-    var status = await Permission.notification.status;
-    if (!status.isGranted) {
-      await Permission.notification.request();
+  void toggleTheme(ThemeMode mode) async {
+    setState(() {
+      _themeMode = mode;
+    });
+    if (mode == ThemeMode.dark) {
+      await _prefs.setBool('isDarkMode', true);
+    } else {
+      await _prefs.setBool('isDarkMode', false);
     }
   }
-}
 
-// ✅ 알림 보내는 함수
-Future<void> showExpirationNotification(String itemName, int daysLeft) async {
-  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-    'expiration_channel',
-    '유통기한 알림',
-    channelDescription: '유통기한이 임박한 품목에 대한 알림',
-    importance: Importance.max,
-    priority: Priority.high,
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedTheme(
+      data: _themeMode == ThemeMode.dark ? _darkTheme() : _lightTheme(),
+      duration: Duration(milliseconds: 300), // 전환 애니메이션 속도
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        themeMode: _themeMode,
+        theme: _lightTheme(),
+        darkTheme: _darkTheme(),
+        home: HomePage(toggleTheme: toggleTheme),
+      ),
+    );
+  }
+
+
+  // 라이트 테마
+  ThemeData _lightTheme() => ThemeData(
+    scaffoldBackgroundColor: Colors.white,
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      iconTheme: IconThemeData(color: Colors.black),
+      titleTextStyle: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.w600),
+    ),
+    textTheme: TextTheme(
+      bodyMedium: TextStyle(color: Colors.black87),
+    ),
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: Colors.white,
+      selectedItemColor: Colors.black,
+      unselectedItemColor: Colors.grey,
+      selectedLabelStyle: TextStyle(color: Colors.black),
+      unselectedLabelStyle: TextStyle(color: Colors.grey),
+      selectedIconTheme: IconThemeData(color: Colors.black),
+      unselectedIconTheme: IconThemeData(color: Colors.grey),
+    ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: Colors.black,
+      foregroundColor: Colors.white,
+    ),
+    colorScheme: ColorScheme.light(
+      primary: Colors.black,
+    ),
   );
 
-  const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-
-  await flutterLocalNotificationsPlugin.show(
-    0,
-    '$itemName 유통기한 주의',
-    '$daysLeft일 남았습니다!',
-    platformDetails,
+  // 다크 테마
+  ThemeData _darkTheme() => ThemeData(
+    scaffoldBackgroundColor: Colors.black,
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.black,
+      elevation: 0,
+      iconTheme: IconThemeData(color: Colors.white),
+      titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+    ),
+    textTheme: TextTheme(
+      bodyMedium: TextStyle(color: Colors.white70),
+    ),
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: Colors.black,
+      selectedItemColor: Colors.white,
+      unselectedItemColor: Colors.grey,
+      selectedLabelStyle: TextStyle(color: Colors.white),
+      unselectedLabelStyle: TextStyle(color: Colors.grey),
+      selectedIconTheme: IconThemeData(color: Colors.white),
+      unselectedIconTheme: IconThemeData(color: Colors.grey),
+    ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+    ),
+    colorScheme: ColorScheme.dark(
+      primary: Colors.white,
+    ),
   );
 }
-
