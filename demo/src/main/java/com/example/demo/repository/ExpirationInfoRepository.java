@@ -15,5 +15,5 @@ public interface ExpirationInfoRepository extends JpaRepository<ExpirationInfo, 
     void deleteByProductNameAndCategoryAndShelfLife(String productName, String category, String shelfLife);
 
     // ✅ 음식 이름으로 검색하는 API에서 사용할 메서드
-    Optional<ExpirationInfo> findFirstByProductNameContaining(String productName);
+    List<ExpirationInfo> findByProductNameContaining(String productName);
 }

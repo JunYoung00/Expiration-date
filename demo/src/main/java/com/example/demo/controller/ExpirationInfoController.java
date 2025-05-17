@@ -45,13 +45,13 @@ public class ExpirationInfoController {
     @GetMapping(value = "/search", produces = "application/json; charset=UTF-8")
     public ResponseEntity<?> searchByProductName(@RequestParam(name = "name") String name) {
         System.out.println("검색어: " + name);
-        Optional<ExpirationInfo> info = expirationInfoRepository.findFirstByProductNameContaining(name);
-        if (info.isPresent()) {
-            return ResponseEntity.ok(info.get());
+        List<ExpirationInfo> infos = expirationInfoRepository.findByProductNameContaining(name);
+        if (!infos.isEmpty()) {
+            return ResponseEntity.ok(infos); // 🔥 여러개 리스트로 반환
         } else {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.valueOf("text/plain; charset=UTF-8")) // 🔥 한글 에러 메시지 대응
+                    .contentType(MediaType.valueOf("text/plain; charset=UTF-8"))
                     .body("DB에 등록된 품목이 없습니다.");
         }
     }
