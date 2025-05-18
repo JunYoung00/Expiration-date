@@ -121,49 +121,76 @@ class _ExpirationDatePageState extends State<ExpirationDatePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: Drawer(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(16), bottomRight: Radius.circular(16))),
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Theme.of(context).primaryColor),
-              child: Text('기능 메뉴', style: TextStyle(color: Colors.white, fontSize: 24)),
-            ),
-            ListTile(
-              leading: Icon(Icons.search),
-              title: Text('음식 검색'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => SearchPage(onItemSelected: (newItem) {
-                      setState(() => expirationList.add(newItem));
-                      saveData();
-                    }),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topRight: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+          ),
+        ),
+        child: Container(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).drawerTheme.backgroundColor ?? Colors.grey[900]
+              : Colors.white, // ✅ 밝은 모드일 땐 흰색 배경 통일
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              Container(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).primaryColor
+                    : Colors.white, // ✅ 헤더도 흰색으로
+                padding: EdgeInsets.fromLTRB(16, 100, 16, 8), // ✅ 아래 패딩 줄임
+                child: Text(
+                  '기능 메뉴',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
                   ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.camera_alt),
-              title: Text('카메라 인식'),
-              onTap: () {
-                Navigator.pop(context);
-                pickImageAndRecognize();
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.add),
-              title: Text('직접 추가'),
-              onTap: () {
-                Navigator.pop(context);
-                _showAddDialog();
-              },
-            ),
-          ],
+                ),
+              ),
+              Divider(height: 1), // ✅ 헤더와 리스트 사이 구분선
+              ListTile(
+                dense: true, // ✅ 리스트 간 간격 축소
+                leading: Icon(Icons.camera_alt),
+                title: Text('카메라 인식'),
+                onTap: () {
+                  Navigator.pop(context);
+                  pickImageAndRecognize();
+                },
+              ),
+              ListTile(
+                dense: true,
+                leading: Icon(Icons.search),
+                title: Text('음식 검색'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SearchPage(onItemSelected: (newItem) {
+                        setState(() => expirationList.add(newItem));
+                        saveData();
+                      }),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                dense: true,
+                leading: Icon(Icons.add),
+                title: Text('직접 추가'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showAddDialog();
+                },
+              ),
+            ],
+          ),
         ),
       ),
+
       appBar: AppBar(
         title: Text('유통기한 확인', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
