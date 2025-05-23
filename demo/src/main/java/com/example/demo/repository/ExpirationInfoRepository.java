@@ -2,6 +2,7 @@ package com.example.demo.repository;
 
 import com.example.demo.model.ExpirationInfo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -16,4 +17,5 @@ public interface ExpirationInfoRepository extends JpaRepository<ExpirationInfo, 
 
     // ✅ 음식 이름으로 검색하는 API에서 사용할 메서드
     List<ExpirationInfo> findByProductNameContaining(String productName);
+
 }
