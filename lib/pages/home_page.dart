@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'expiration_date_page.dart';
-import 'recipe_page.dart';
+import 'money_page.dart';
 import 'settings_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -56,24 +56,20 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _selectedIndex == 0
-              ? '유통기한 확인'
-              : _selectedIndex == 1
-              ? '칼로리 계산'
-              : '설정',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        automaticallyImplyLeading: false
-      ),
+      // appBar: _selectedIndex == 0 ? null : AppBar(
+      //   title: Text(
+      //     _selectedIndex == 1 ? '가계부' : '설정',
+      //     style: TextStyle(fontWeight: FontWeight.bold),
+      //   ),
+      //   centerTitle: true,
+      //   automaticallyImplyLeading: false,
+      // ),
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
         children: [
           ExpirationDatePage(),
-          RecipePage(),
+          MoneyPage(),
           SettingsPage(toggleTheme: widget.toggleTheme),
         ],
       ),
@@ -91,7 +87,7 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book_outlined),
             activeIcon: Icon(Icons.menu_book),
-            label: '레시피',
+            label: '가계부',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),

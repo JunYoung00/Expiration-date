@@ -1,75 +1,90 @@
-// lib/notifications/notification_service.dart
-import 'dart:io';
+import 'dart:convert';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
-  static final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+  static Future<void> triggerExpirationCheck() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedList = prefs.getString('expirationList');
+    print('🔥 savedList: $savedList');
+    if (savedList == null) {
+      print('🚫 expirationList가 없음');
+      return;
+    };
 
-  // ✅ 알림 초기화
-  static Future<void> initialize() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+    final List<Map<String, dynamic>> list =
+    List<Map<String, dynamic>>.from(json.decode(savedList));
+    print('📦 expirationList 로드됨: $list');
 
-    const InitializationSettings initializationSettings =
-    InitializationSettings(android: initializationSettingsAndroid);
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    int id = 0; // 🔢 알림 ID를 구분하기 위한 카운터
 
-    await _requestPermissionIfNeeded();
-  }
+    for (var item in list) {
+      print('⏱️ 처리 중인 항목: $item');
+      if (item['expirationDate'] != null) {
+        final expirationDate = DateTime.parse(item['expirationDate']);
+        final dday = expirationDate.difference(todayOnly).inDays;
 
-  // ✅ Android 13+ 알림 권한 요청
-  static Future<void> _requestPermissionIfNeeded() async {
-    if (Platform.isAndroid) {
-      final androidInfo = await DeviceInfoPlugin().androidInfo;
-      if (androidInfo.version.sdkInt >= 33) {
-        var status = await Permission.notification.status;
-        if (!status.isGranted) {
-          await Permission.notification.request();
+        print('🔔 알림 조건 확인 중: $dday일 남음 → ${item['name']}');
+
+        if (dday >= 0 && dday <= 7) {
+          await showNotification(
+            '${item['name']} 유통기한 임박!',
+            '남은 일수: D-$dday',
+            id: id++, // 🔥 각 알림에 고유 ID 부여
+          );
         }
       }
     }
+
+    await prefs.setBool('notificationShown', true);
   }
 
-  // ✅ 알림 띄우는 함수
-  static Future<void> showExpirationNotification(String itemName, int daysLeft) async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+  static final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+  FlutterLocalNotificationsPlugin();
+
+  static Future<void> initialize() async {
+    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initSettings = InitializationSettings(android: androidInit);
+
+    await flutterLocalNotificationsPlugin.initialize(initSettings);
+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'expiration_channel',
       '유통기한 알림',
-      channelDescription: '유통기한 임박 품목 알림',
+      description: '유통기한 임박 품목 알림',
       importance: Importance.max,
-      priority: Priority.high,
     );
 
-    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+    final androidPlugin = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      '$itemName 유통기한 주의',
-      '$daysLeft일 남았습니다!',
-      platformDetails,
-    );
+    await androidPlugin?.createNotificationChannel(channel);
   }
 
-  // ✅ 테스트용 더미 알림
-  static void testDummyExpirationAlert() {
-    final dummyItems = [
-      {'name': 'milk', 'expiration': DateTime.now().add(Duration(days: 3))},
-      {'name': 'egg', 'expiration': DateTime.now().add(Duration(days: 3))},
-      {'name': 'dooboo', 'expiration': DateTime.now().add(Duration(days: 3))},
-    ];
+  static Future<void> showNotification(String title, String body, {required int id}) async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'expiration_channel',           // 채널 ID
+      '유통기한 알림',                   // 채널 이름
+      channelDescription: '유통기한 임박 품목 알림',
+      importance: Importance.max,      // 중요도: 상단 표시되게
+      priority: Priority.high,         // 우선순위 높음
+      playSound: true,                 // 🔔 소리 설정
+      enableVibration: true,           // 📳 진동 설정
+    );
 
-    for (var item in dummyItems) {
-      final name = item['name'] as String;
-      final expiration = item['expiration'] as DateTime;
-      final daysLeft = expiration.difference(DateTime.now()).inDays;
+    const NotificationDetails platformDetails =
+    NotificationDetails(android: androidDetails);
 
-      if (daysLeft <= 7) {
-        showExpirationNotification(name, daysLeft);
-      }
-    }
+    await flutterLocalNotificationsPlugin.show(
+      id,         // 🔥 여기서 ID를 다르게 줘야 겹치지 않음
+      title,
+      body,
+      platformDetails,
+    );
   }
 }

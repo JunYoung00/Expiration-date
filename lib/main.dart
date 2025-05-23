@@ -1,15 +1,33 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'notifications/notification_service.dart';
 import 'pages/home_page.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Flutter 엔진 초기화
+  WidgetsFlutterBinding.ensureInitialized(); // Flutter 엔진 초기화// 앱 시작 시 사전 로딩
   SharedPreferences prefs = await SharedPreferences.getInstance(); // 저장된 값 불러오기
   bool isDarkMode = prefs.getBool('isDarkMode') ?? false; // 저장된 테마값 읽기
+
+  await prefs.setBool('notificationShown', false);
+  await NotificationService.initialize();
+  print('🔧 알림 초기화 완료');
+
+  final isEnabled = prefs.getBool('isNotificationEnabled') ?? true;
+  final alreadyShown = prefs.getBool('notificationShown') ?? false;
+  print('🔎 알림 조건 확인: isEnabled=$isEnabled / alreadyShown=$alreadyShown');
+
+  if (isEnabled && !alreadyShown) {
+    print('✅ 조건 만족 → 알림 트리거 실행');
+    await NotificationService.triggerExpirationCheck();
+    await prefs.setBool('notificationShown', true);
+  }
   runApp(MyApp(isDarkMode: isDarkMode)); // 읽은 테마값 넘기기
 }
 
@@ -35,6 +53,14 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _loadPrefs() async {
     _prefs = await SharedPreferences.getInstance();
+  }
+
+  Future<void> addExpenseDetail(String date, String name, int amount) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'expenses_$date';
+    List<String> existing = prefs.getStringList(key) ?? [];
+    existing.add(jsonEncode({'name': name, 'amount': amount}));
+    await prefs.setStringList(key, existing);
   }
 
   void toggleTheme(ThemeMode mode) async {

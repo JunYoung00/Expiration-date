@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import '../main.dart'; // main.dart에 있는 flutterLocalNotificationsPlugin을 가져다 씀
+import '../main.dart';
+import '../notifications/notification_service.dart'; // main.dart에 있는 flutterLocalNotificationsPlugin을 가져다 씀
 
 class SettingsPage extends StatefulWidget {
   final Function(ThemeMode) toggleTheme;
@@ -84,20 +85,24 @@ class _SettingsPageState extends State<SettingsPage> {
     });
     await _prefs.setBool('isNotificationEnabled', value);
 
-    if (!value) {
-      // 알림 스위치 끄면 모든 예약 알림 취소
-      await flutterLocalNotificationsPlugin.cancelAll();
-      print("알림 모두 취소됨");
+    if (value) {
+      await _prefs.setBool('notificationShown', false); // ✅ 초기화
+      await NotificationService.triggerExpirationCheck(); // ✅ 즉시 알림
+      print("🔔 알림 허용됨");
     } else {
-      // 스위치 켜면 새 알림 등록할 수도 있음 (여긴 지금은 스킵해도 됨)
-      print("알림 허용됨");
+      await _prefs.setBool('notificationShown', false);
+      await flutterLocalNotificationsPlugin.cancelAll();
+      print("🔕 알림 모두 취소됨");
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('설정', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+      ),
       body: ListView(
         children: [
           ListTile(
@@ -114,15 +119,13 @@ class _SettingsPageState extends State<SettingsPage> {
               _toggleNotification(value); // ✅ 여기 연결!
             },
           ),
-
           Divider(),
           ListTile(
             leading: Icon(Icons.info_outline, color: Colors.grey),
             title: Text('앱 정보', style: TextStyle(fontSize: 18)),
-            onTap: () => _showAppInfoDialog(context),  // ✅ 이거 확실하게 연결
+            onTap: () => _showAppInfoDialog(context),
           ),
         ],
       ),
     );
-  }
-}
+  }}

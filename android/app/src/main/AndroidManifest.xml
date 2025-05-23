@@ -1,11 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.capstone">
 
-    <!-- ✅ 알림 권한 추가 -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- ✅ 여기 추가: 카메라, 저장소 접근 퍼미션 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
 
     <application
-        android:label="capstone"
+        android:label="expiration_date"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
@@ -21,8 +25,8 @@
 
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
-                android:resource="@style/NormalTheme"
-                />
+                android:resource="@style/NormalTheme" />
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -34,7 +38,7 @@
             android:value="2" />
     </application>
 
-    <!-- Flutter 텍스트 플러그인을 위한 쿼리 -->
+    <!-- Flutter 텍스트 플러그인 관련 설정 -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
