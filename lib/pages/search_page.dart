@@ -30,7 +30,7 @@ class _SearchPageState extends State<SearchPage> {
 
     try {
       final encodedName = Uri.encodeComponent(query);
-      final url = Uri.parse('http://192.168.35.33:8080/search?name=$encodedName');
+      final url = Uri.parse('https://c036-39-120-34-174.ngrok-free.app/search?name=$encodedName');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
