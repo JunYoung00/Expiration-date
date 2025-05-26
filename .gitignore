@@ -1,0 +1,36 @@
+# Dart & Flutter
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.melos_tool/
+
+# 빌드 결과물
+build/
+**/build/
+*.dart.js
+*.info.json
+*.js
+*.js.map
+*.dill
+*.d
+*.tmp
+
+# IDE (Android Studio, VS Code 등)
+.idea/
+.vscode/
+*.iml
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# 실행 파일
+*.apk
+*.ipa
+
+# 기타
+pubspec.lock
+d
